@@ -40,8 +40,10 @@ env/
 .DS_Store
 Thumbs.db
 
-# Large data files (keep in separate storage)
+# Large data files
 *.zip
 *.tar.gz
-
-data/.env
+data/
+results/
+notebooks/.ipynb_checkpoints/
+.env
