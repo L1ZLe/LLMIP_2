@@ -1,0 +1,48 @@
+{
+  "samples": [
+    {
+      "index": 0,
+      "original": 1,
+      "fresh": 1,
+      "actual": 0,
+      "original_correct": false,
+      "fresh_correct": false
+    },
+    {
+      "index": 1,
+      "original": 0,
+      "fresh": 1,
+      "actual": 1,
+      "original_correct": false,
+      "fresh_correct": true
+    },
+    {
+      "index": 2,
+      "original": 1,
+      "fresh": 1,
+      "actual": 1,
+      "original_correct": true,
+      "fresh_correct": true
+    },
+    {
+      "index": 3,
+      "original": 0,
+      "fresh": 1,
+      "actual": 1,
+      "original_correct": false,
+      "fresh_correct": true
+    },
+    {
+      "index": 4,
+      "original": 1,
+      "fresh": 1,
+      "actual": 1,
+      "original_correct": true,
+      "fresh_correct": true
+    }
+  ],
+  "domain": "financial",
+  "original_accuracy": 0.4,
+  "replicability_score": 0.8,
+  "n_samples": 5
+}

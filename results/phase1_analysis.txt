@@ -1,0 +1,92 @@
+Basedon the analysis of the provided IEEE 118-bus power system training data, I have identified distinct patterns governing voltage magnitudes. The system exhibits typical power flow characteristics where generator buses maintain stiff voltages, while load buses fluctuate based on system demand and generation dispatch.
+
+Here is the summary of the learned decision rules and relationships:
+
+### 1. Bus Categories and Typical Voltage Ranges
+
+By analyzing the variance of `vm_pu` across all samples, the buses can be categorized into three distinct behavioral groups:
+
+*   **Category A: Generator (PV) Buses (Stiff/High Voltage)**
+    *   **Typical Range:** 1.190 – 1.200 pu
+    *   **Characteristics:** These buses have very low variance (standard deviation $\approx$ 0.001). They are likely connected to large generators with Automatic Voltage Regulators (AVRs) set to 1.20 pu.
+    *   **Identified Buses:** 4, 5, 6, 8, 9, 12, 24, 25, 26, 49, 59, 66, 80, 89, 90, 100, 106, 110, 112, 116.
+    *   **Prediction Rule:** Voltage is constant $\approx$ 1.20 pu regardless of load.
+
+*   **Category B: Standard Load (PQ) Buses (Medium Voltage)**
+    *   **Typical Range:** 1.100 – 1.180 pu
+    *   **Characteristics:** These buses show moderate fluctuation. They are electrically close to generation or have sufficient reactive support.
+    *   **Identified Buses:** 1, 2, 3, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 61, 62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 81, 82, 83, 84, 85, 86, 87, 88, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 107, 108, 109, 111, 113, 114, 118.
+
+*   **Category C: Weak/Remote Load Buses (Low Voltage)**
+    *   **Typical Range:** 1.000 – 1.150 pu
+    *   **Characteristics:** These buses are highly sensitive to total system loading. They experience significant voltage sag during peak hours. They are likely located at the electrical periphery of the network or in areas with high R/X ratios.
+    *   **Identified Buses:** 21, 22, 23, 115, 117.
+    *   **Critical Observation:** Bus 21 is the weakest bus, dropping as low as 1.04 pu under peak load.
+
+---
+
+### 2. Key Relationships and Feature Thresholds
+
+The primary driver of voltage variation on Category B and C buses is the **Total System Active Power Load (`load_p_total_mw`)**.
+
+#### Relationship 1: Total Load vs. Weak Bus Voltage
+There is a strong inverse correlation between total load and voltage at weak buses (e.g., Bus 21, Bus 22).
+
+*   **Low Load Condition:** `load_p_total_mw` < 7,000 MW
+    *   **Effect:** Weak bus voltages are high (> 1.12 pu).
+    *   *Example:* At `load_p_total_mw` = 6415 MW, `vm_21` = 1.129 pu.
+*   **High Load Condition:** `load_p_total_mw` > 11,000 MW
+    *   **Effect:** Weak bus voltages drop significantly (< 1.07 pu).
+    *   *Example:* At `load_p_total_mw` = 12,356 MW, `vm_21` = 1.040 pu.
+
+#### Relationship 2: Time of Day vs. Load
+Temporal features are strong proxies for load levels.
+*   **Peak Hours:** 17:00 – 20:00 (Hour 17, 18, 19, 20)
+    *   Correlates with highest `load_p_total_mw` and lowest voltages.
+*   **Off-Peak Hours:** 02:00 – 05:00 (Hour 2, 3, 4, 5)
+    *   Correlates with lowest `load_p_total_mw` and highest voltages.
+
+#### Relationship 3: Renewable Generation (Solar)
+*   **Solar Impact:** High `gen_solar_p_r1_mw` (Region 1 Solar) during midday (Hours 10-14) provides a voltage boost to Region 1 buses (1-30), slightly counteracting the load increase compared to evening peaks where thermal generation dominates.
+
+---
+
+### 3. Conditional Decision Rules (IF-THEN)
+
+These rules can be applied to predict voltage magnitudes for new data points:
+
+#### Rule Set 1: Predicting Weak Bus Voltages (e.g., Bus 21, 22, 115)
+*   **IF** `load_p_total_mw` **>** 12000:
+    *   **THEN** `vm_21` **<** 1.05 pu (Critical Low)
+    *   **AND** `vm_22` **<** 1.07 pu
+*   **IF** `load_p_total_mw` **<** 7000:
+    *   **THEN** `vm_21` **>** 1.12 pu (High)
+    *   **AND** `vm_22` **>** 1.13 pu
+*   **IF** `hour` **IN** [17, 18, 19, 20] **AND** `is_weekend` == 0:
+    *   **THEN** Expect `vm_21` to be near its minimum for the day (Voltage Sag).
+
+#### Rule Set 2: Predicting Generator Bus Voltages
+*   **IF** `Bus_ID` **IN** [4, 6, 8, 12, 24, 25, 26, 49, 59, 66, 80, 89, 90, 100, 106, 110, 112, 116]:
+    *   **THEN** `vm_pu` = 1.20 pu (Constant)
+
+#### Rule Set 3: Predicting Standard Load Bus Voltages (e.g., Bus 1, 2, 3)
+*   **IF** `load_p_total_mw` **>** 11000:
+    *   **THEN** `vm_1` is approx 1.08 pu.
+*   **IF** `load_p_total_mw` **<** 7000:
+    *   **THEN** `vm_1` is approx 1.13 pu.
+*   **IF** `gen_solar_p_r1_mw` **>** 600:
+    *   **THEN** Add +0.01 pu to estimated voltages in Region 1 (Buses 1-30) compared to non-solar equivalents with same load.
+
+#### Rule Set 4: Regional Load Impact
+*   **IF** `load_p_r3_mw` **>** 3500 MW:
+    *   **THEN** Voltages in the 100+ bus range (Region 3) will depress by ~0.02 pu compared to baseline.
+    *   *Specifically:* `vm_115` and `vm_117` will drop below 1.15 pu.
+
+### Summary for Prediction
+To predict voltages for a new sample:
+1.  **Check Bus Type:** If it is a Generator Bus (Category A), predict **1.20 pu**.
+2.  **Check Total Load:** Use `load_p_total_mw` as the primary regressor.
+    *   High Load (>11k MW) $\rightarrow$ Subtract ~0.05 pu from base voltage.
+    *   Low Load (<7k MW) $\rightarrow$ Add ~0.03 pu to base voltage.
+3.  **Check Weak Buses:** Apply a steeper penalty for high load on Buses 21, 22, 23, 115, 117.
+4.  **Check Solar:** If solar is high in a region, slightly boost voltage predictions for that region.

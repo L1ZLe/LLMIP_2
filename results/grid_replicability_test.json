@@ -1,0 +1,13 @@
+{
+  "domain": "grid",
+  "samples": [],
+  "original_llm_performance": {
+    "mae_overall": 0.049460811674259496,
+    "rmse_overall": 0.054325163682537154,
+    "n_samples": 40
+  },
+  "replicability_score": 0.6153846153846154,
+  "samples_tested": 39,
+  "samples_replicable": 24,
+  "fresh_llm_mae": 446.0309386267778
+}
